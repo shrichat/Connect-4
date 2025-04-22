@@ -63,7 +63,8 @@ public class LoginScreen {
             if (!username.isEmpty()) {
                 new Thread(() -> {
                     connection = new ClientConnection();
-                    boolean connected = connection.connect("localhost", 5000, username);
+                    boolean connected = connection.connect("tramway.proxy.rlwy.net", 13343, username);
+
                     if (connected) {
                         Platform.runLater(() -> {
                             LobbyScreen lobby = new LobbyScreen(stage, username, connection);
