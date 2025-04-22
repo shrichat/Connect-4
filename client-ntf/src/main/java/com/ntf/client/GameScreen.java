@@ -24,15 +24,16 @@ public class GameScreen {
     private GridPane boardGrid;
     private GameBoard gameBoard;
 
-    public GameScreen(Stage stage, String playerName, String opponentName) {
+    public GameScreen(Stage stage, String playerName, String opponentName, boolean isRed) {
         this.stage = stage;
         this.playerName = playerName;
         this.opponentName = opponentName;
-        this.isRed = new Random().nextBoolean();
+        this.isRed = isRed;
         this.isPlayerTurn = isRed;
         this.gameBoard = new GameBoard();
         setupUI();
     }
+
 
     private void setupUI() {
         String playerColor = isRed ? "🔴" : "🟡";

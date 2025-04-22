@@ -40,4 +40,12 @@ public class Lobby {
     public int getId() {
         return id;
     }
+
+    public ClientHandler getPlayer1() {
+        return player1;
+    }
+
+    public ClientHandler getPlayer2() {
+        return player2;
+    }
 }

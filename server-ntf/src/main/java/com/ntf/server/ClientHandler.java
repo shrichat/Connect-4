@@ -32,11 +32,17 @@ public class ClientHandler implements Runnable {
             username = in.readLine();
             System.out.println("User connected: " + username);
 
+            sendLobbyStatus();
+
             while (true) {
                 String input = in.readLine();
                 if (input == null) break;
 
                 System.out.println(username + ": " + input);
+
+                if (input.equals("REQUEST_LOBBY_STATUS")) {
+                    sendLobbyStatus();
+                }
 
                 if (input.startsWith("JOIN_LOBBY:")) {
                     int lobbyId = Integer.parseInt(input.split(":")[1]);
@@ -51,11 +57,14 @@ public class ClientHandler implements Runnable {
                     }
 
                     if (lobby.isFull()) {
-                        ClientHandler opponent = lobby.getOpponent(this);
-                        if (opponent != null) {
-                            opponent.getWriter().println("LOBBY_READY:" + username);
-                            out.println("LOBBY_READY:" + opponent.getUsername());
-                        }
+                        ClientHandler player1 = lobby.getPlayer1();
+                        ClientHandler player2 = lobby.getPlayer2();
+
+                        player1.getWriter().println("COLOR_ASSIGN:RED");
+                        player2.getWriter().println("COLOR_ASSIGN:YELLOW");
+
+                        player1.getWriter().println("LOBBY_READY:" + player2.getUsername());
+                        player2.getWriter().println("LOBBY_READY:" + player1.getUsername());
                     }
                 }
             }
@@ -69,6 +78,16 @@ public class ClientHandler implements Runnable {
                 e.printStackTrace();
             }
         }
+    }
+
+    private void sendLobbyStatus() {
+        StringBuilder status = new StringBuilder("LOBBY_STATUS:");
+        for (int i = 1; i <= 3; i++) {
+            Lobby lobby = server.getLobbyManager().getLobby(i);
+            status.append(lobby.getCurrentSize()).append("/2");
+            if (i < 3) status.append(",");
+        }
+        out.println(status.toString());
     }
 
     public PrintWriter getWriter() {
