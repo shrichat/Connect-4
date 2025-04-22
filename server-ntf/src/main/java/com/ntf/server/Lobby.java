@@ -9,7 +9,10 @@ public class Lobby {
         this.id = id;
     }
 
-    public boolean addPlayer(ClientHandler player) {
+    public synchronized boolean addPlayer(ClientHandler player) {
+        if (player1 != null && player1.getUsername().equals(player.getUsername())) return false;
+        if (player2 != null && player2.getUsername().equals(player.getUsername())) return false;
+
         if (player1 == null) {
             player1 = player;
             return true;
@@ -17,6 +20,7 @@ public class Lobby {
             player2 = player;
             return true;
         }
+
         return false;
     }
 
