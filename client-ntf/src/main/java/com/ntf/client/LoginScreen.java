@@ -1,5 +1,6 @@
 package com.ntf.client;
 
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -9,62 +10,73 @@ import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
 public class LoginScreen {
 
+    private Stage stage;
     private TextField usernameField;
     private Button connectButton;
     private Button aiButton;
+    private ClientConnection connection;
 
-    public void show(Stage stage) {
+    public LoginScreen(Stage stage) {
+        this.stage = stage;
+    }
+
+    public void start(Stage primaryStage) {
+        this.stage = primaryStage;
+
         Label title = new Label("NTF - Nail The Four");
-        title.setFont(Font.font("Arial", 28));
-        Label loginLabel = new Label("Login");
-        loginLabel.setFont(Font.font("Arial", 22));
-        loginLabel.setStyle("-fx-text-fill: #b33939;");
+        title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold;");
 
-        VBox titleBox = new VBox(title, loginLabel);
-        titleBox.setAlignment(Pos.CENTER);
-        titleBox.setSpacing(5);
+        Label loginLabel = new Label("Login");
+        loginLabel.setStyle("-fx-font-size: 20px; -fx-text-fill: brown;");
 
         Label usernameLabel = new Label("Choose username");
-        usernameLabel.setFont(Font.font("Arial", 16));
-        usernameField = new TextField();
-        usernameField.setPrefWidth(300);
+        usernameLabel.setStyle("-fx-font-size: 16px;");
 
-        VBox centerBox = new VBox(usernameLabel, usernameField);
-        centerBox.setAlignment(Pos.CENTER);
-        centerBox.setSpacing(10);
+        usernameField = new TextField();
+        usernameField.setPromptText("Enter username");
 
         connectButton = new Button("Connect to server >");
         aiButton = new Button("Play vs AI >");
 
-        VBox buttonBox = new VBox(aiButton, connectButton);
-        buttonBox.setAlignment(Pos.CENTER);
-        buttonBox.setSpacing(10);
-        buttonBox.setPadding(new Insets(30, 0, 0, 0));
+        VBox textBox = new VBox(10, title, loginLabel, usernameLabel, usernameField, aiButton, connectButton);
+        textBox.setAlignment(Pos.CENTER_LEFT);
+        textBox.setPadding(new Insets(20));
 
-        VBox rightContent = new VBox(titleBox, centerBox, buttonBox);
-        rightContent.setAlignment(Pos.CENTER);
-        rightContent.setSpacing(20);
-        rightContent.setPadding(new Insets(20));
-
-        Image image = new Image(getClass().getResource("/images/Homescreen1.png").toExternalForm());
-        ImageView imageView = new ImageView(image);
-        imageView.setFitWidth(250);
+        ImageView imageView = new ImageView(new Image("images/Homescreen1.png"));
+        imageView.setFitWidth(300);
         imageView.setPreserveRatio(true);
 
-        HBox mainLayout = new HBox(imageView, rightContent);
-        mainLayout.setAlignment(Pos.CENTER_LEFT);
-        mainLayout.setSpacing(40);
-        mainLayout.setPadding(new Insets(40));
+        HBox layout = new HBox(20, imageView, textBox);
+        layout.setPadding(new Insets(20));
 
-        Scene scene = new Scene(mainLayout, 700, 400);
+        Scene scene = new Scene(layout, 800, 500);
         stage.setTitle("NTF - Login");
         stage.setScene(scene);
         stage.show();
+
+        connectButton.setOnAction(e -> {
+            String username = usernameField.getText().trim();
+            if (!username.isEmpty()) {
+                new Thread(() -> {
+                    connection = new ClientConnection();
+                    boolean connected = connection.connect("localhost", 5000, username);
+                    if (connected) {
+                        Platform.runLater(() -> {
+                            LobbyScreen lobby = new LobbyScreen(stage, username, connection);
+                            lobby.start(stage);
+                        });
+                    } else {
+                        Platform.runLater(() -> {
+                            System.out.println("Connection failed.");
+                        });
+                    }
+                }).start();
+            }
+        });
     }
 
     public String getUsername() {
