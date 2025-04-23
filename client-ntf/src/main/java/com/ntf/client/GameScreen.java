@@ -1,5 +1,6 @@
 package com.ntf.client;
 
+import javafx.application.Platform;
 import javafx.geometry.HPos;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -9,6 +10,8 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+
+import java.io.IOException;
 
 public class GameScreen {
 
@@ -33,6 +36,7 @@ public class GameScreen {
         this.connection = connection;
         this.gameBoard = new GameBoard();
         setupUI();
+        listenForOpponentMoves();
     }
 
     private void setupUI() {
@@ -68,9 +72,16 @@ public class GameScreen {
                 if (isPlayerTurn) {
                     int placedRow = gameBoard.placeCoin(finalCol, isRed ? 'R' : 'Y');
                     if (placedRow != -1) {
-                        isPlayerTurn = false;
                         updateBoardDisplay();
-                        updateTurnLabel();
+                        if (gameBoard.checkWin(isRed ? 'R' : 'Y')) {
+                            turnLabel.setText("You Win!");
+                        } else if (gameBoard.isFull()) {
+                            turnLabel.setText("Draw!");
+                        } else {
+                            isPlayerTurn = false;
+                            updateTurnLabel();
+                            connection.getWriter().println("MOVE:" + finalCol);
+                        }
                     }
                 }
             });
@@ -119,8 +130,39 @@ public class GameScreen {
 
     private void updateTurnLabel() {
         String name = isPlayerTurn ? playerName : opponentName;
-        String color = (isPlayerTurn == isRed) ? "#FFD700" : "#FF0000";
+        String color = isPlayerTurn
+                ? (isRed ? "#FF0000" : "#FFD700")
+                : (isRed ? "#FFD700" : "#FF0000");
         turnLabel.setText(name + "'s Turn!");
         turnLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: " + color);
+    }
+
+    private void listenForOpponentMoves() {
+        new Thread(() -> {
+            try {
+                String line;
+                while ((line = connection.getReader().readLine()) != null) {
+                    if (line.startsWith("MOVE:")) {
+                        int column = Integer.parseInt(line.split(":")[1]);
+                        Platform.runLater(() -> {
+                            int placedRow = gameBoard.placeCoin(column, isRed ? 'Y' : 'R');
+                            if (placedRow != -1) {
+                                updateBoardDisplay();
+                                if (gameBoard.checkWin(isRed ? 'Y' : 'R')) {
+                                    turnLabel.setText(opponentName + " Wins!");
+                                } else if (gameBoard.isFull()) {
+                                    turnLabel.setText("Draw!");
+                                } else {
+                                    isPlayerTurn = true;
+                                    updateTurnLabel();
+                                }
+                            }
+                        });
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 }

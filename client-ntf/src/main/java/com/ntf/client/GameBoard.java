@@ -25,10 +25,6 @@ public class GameBoard {
         return -1;
     }
 
-    public char[][] getBoard() {
-        return board;
-    }
-
     public boolean checkWin(char symbol) {
         for (int row = 0; row < ROWS; row++) {
             for (int col = 0; col < COLS - 3; col++) {
@@ -76,5 +72,9 @@ public class GameBoard {
             }
         }
         return true;
+    }
+
+    public char[][] getBoard() {
+        return board;
     }
 }

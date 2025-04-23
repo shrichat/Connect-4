@@ -91,6 +91,13 @@ public class ClientHandler implements Runnable {
                         player2.getWriter().println("LOBBY_READY:" + player1.getUsername());
                     }
                 }
+
+                if (input.startsWith("MOVE:") && currentLobby != null) {
+                    ClientHandler opponent = currentLobby.getOpponent(this);
+                    if (opponent != null) {
+                        opponent.getWriter().println(input);
+                    }
+                }
             }
 
         } catch (IOException e) {
