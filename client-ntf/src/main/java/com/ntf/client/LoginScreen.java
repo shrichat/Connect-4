@@ -12,6 +12,8 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
+import java.io.IOException;
+
 public class LoginScreen {
 
     private Stage stage;
@@ -66,10 +68,23 @@ public class LoginScreen {
                     boolean connected = connection.connect("tramway.proxy.rlwy.net", 13343, username);
 
                     if (connected) {
-                        Platform.runLater(() -> {
-                            LobbyScreen lobby = new LobbyScreen(stage, username, connection);
-                            lobby.start(stage);
-                        });
+                        try {
+                            String response = connection.getReader().readLine();
+                            if ("USERNAME_TAKEN".equals(response)) {
+                                Platform.runLater(() -> {
+                                    usernameField.clear();
+                                    usernameField.setPromptText("Oops, username's already taken :(");
+                                });
+                                connection.close();
+                            } else {
+                                Platform.runLater(() -> {
+                                    LobbyScreen lobby = new LobbyScreen(stage, username, connection);
+                                    lobby.start(stage);
+                                });
+                            }
+                        } catch (IOException ex) {
+                            ex.printStackTrace();
+                        }
                     } else {
                         Platform.runLater(() -> {
                             System.out.println("Connection failed.");

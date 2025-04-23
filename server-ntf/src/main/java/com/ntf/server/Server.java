@@ -4,18 +4,19 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class Server {
 
     private int port;
     private boolean running = false;
-    private List<ClientHandler> clients;
-    private LobbyManager lobbyManager;
+    private final List<ClientHandler> clients;
+    private final LobbyManager lobbyManager;
 
     public Server(int port) {
         this.port = port;
-        this.clients = new ArrayList<>();
+        this.clients = Collections.synchronizedList(new ArrayList<>());
         this.lobbyManager = new LobbyManager();
     }
 
@@ -27,10 +28,7 @@ public class Server {
             while (running) {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("New client connected: " + clientSocket);
-
-                ClientHandler handler = new ClientHandler(clientSocket, this);
-                clients.add(handler);
-                new Thread(handler).start();
+                new Thread(new ClientHandler(clientSocket, this)).start();
             }
 
         } catch (IOException e) {
@@ -44,5 +42,17 @@ public class Server {
 
     public LobbyManager getLobbyManager() {
         return lobbyManager;
+    }
+
+    public void broadcastLobbyStatus() {
+        synchronized (clients) {
+            for (ClientHandler client : clients) {
+                client.sendLobbyStatus();
+            }
+        }
+    }
+
+    public void removeClient(ClientHandler handler) {
+        clients.remove(handler);
     }
 }

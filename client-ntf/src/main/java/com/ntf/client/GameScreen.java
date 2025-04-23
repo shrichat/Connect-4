@@ -1,5 +1,6 @@
 package com.ntf.client;
 
+import javafx.geometry.HPos;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -9,8 +10,6 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
-import java.util.Random;
-
 public class GameScreen {
 
     private Stage stage;
@@ -18,22 +17,23 @@ public class GameScreen {
     private String opponentName;
     private boolean isPlayerTurn;
     private boolean isRed;
+    private ClientConnection connection;
     private Label turnLabel;
     private Label playerInfoLabel;
     private Label opponentInfoLabel;
     private GridPane boardGrid;
     private GameBoard gameBoard;
 
-    public GameScreen(Stage stage, String playerName, String opponentName, boolean isRed) {
+    public GameScreen(Stage stage, String playerName, String opponentName, boolean isRed, ClientConnection connection) {
         this.stage = stage;
         this.playerName = playerName;
         this.opponentName = opponentName;
         this.isRed = isRed;
         this.isPlayerTurn = isRed;
+        this.connection = connection;
         this.gameBoard = new GameBoard();
         setupUI();
     }
-
 
     private void setupUI() {
         String playerColor = isRed ? "🔴" : "🟡";
@@ -47,7 +47,7 @@ public class GameScreen {
 
         turnLabel = new Label();
         updateTurnLabel();
-        turnLabel.setStyle("-fx-font-size: 24px;");
+        turnLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
 
         VBox topInfo = new VBox(5, playerInfoLabel, opponentInfoLabel, turnLabel);
         topInfo.setAlignment(Pos.CENTER);
@@ -56,33 +56,37 @@ public class GameScreen {
         boardGrid.setAlignment(Pos.CENTER);
         updateBoardDisplay();
 
-        HBox columnButtons = new HBox(10);
-        columnButtons.setAlignment(Pos.CENTER);
+        GridPane buttonGrid = new GridPane();
+        buttonGrid.setAlignment(Pos.CENTER);
+        buttonGrid.setHgap(5);
+
         for (int col = 0; col < 7; col++) {
             int finalCol = col;
             Button colButton = new Button("" + (col + 1));
+            colButton.setPrefWidth(50);
             colButton.setOnAction(e -> {
                 if (isPlayerTurn) {
-                	int placedRow = gameBoard.placeCoin(finalCol, isRed ? 'R' : 'Y');
-                	if (placedRow != -1) {
-                	    isPlayerTurn = false;
-                	    updateBoardDisplay();
-                	    updateTurnLabel();
-                	}
-
+                    int placedRow = gameBoard.placeCoin(finalCol, isRed ? 'R' : 'Y');
+                    if (placedRow != -1) {
+                        isPlayerTurn = false;
+                        updateBoardDisplay();
+                        updateTurnLabel();
+                    }
                 }
             });
-            columnButtons.getChildren().add(colButton);
+            buttonGrid.add(colButton, col, 0);
+            GridPane.setHalignment(colButton, HPos.CENTER);
         }
 
         Button quitButton = new Button("Quit >");
         quitButton.setStyle("-fx-text-fill: red;");
         quitButton.setOnAction(e -> {
+            connection.getWriter().println("LEFT_LOBBY");
             LoginScreen login = new LoginScreen(stage);
             login.start(stage);
         });
 
-        VBox mainBox = new VBox(10, topInfo, boardGrid, columnButtons, quitButton);
+        VBox mainBox = new VBox(10, topInfo, boardGrid, buttonGrid, quitButton);
         mainBox.setAlignment(Pos.CENTER);
         mainBox.setStyle("-fx-padding: 20px;");
 
@@ -97,12 +101,17 @@ public class GameScreen {
         char[][] matrix = gameBoard.getBoard();
         for (int row = 0; row < 6; row++) {
             for (int col = 0; col < 7; col++) {
-                Label cell = new Label();
+                StackPane cell = new StackPane();
                 cell.setMinSize(50, 50);
-                cell.setStyle("-fx-border-color: blue; -fx-border-width: 2px; -fx-alignment: center;");
+                cell.setStyle("-fx-border-color: blue; -fx-border-width: 2px;");
                 char val = matrix[row][col];
-                if (val == 'R') cell.setText("\uD83D\uDD34");
-                else if (val == 'Y') cell.setText("\uD83D\uDFE1");
+                if (val == 'R') {
+                    Image redCoin = new Image("images/NTF_RED.png", 40, 40, true, true);
+                    cell.getChildren().add(new ImageView(redCoin));
+                } else if (val == 'Y') {
+                    Image yellowCoin = new Image("images/NTF_YELLOW.png", 40, 40, true, true);
+                    cell.getChildren().add(new ImageView(yellowCoin));
+                }
                 boardGrid.add(cell, col, row);
             }
         }

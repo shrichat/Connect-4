@@ -91,7 +91,7 @@ public class LobbyScreen {
                         opponent = response.split(":")[1];
                         String finalOpponent = opponent;
                         Platform.runLater(() -> {
-                            GameScreen gameScreen = new GameScreen(stage, username, finalOpponent, isRed);
+                            GameScreen gameScreen = new GameScreen(stage, username, finalOpponent, isRed, connection);
                         });
                         break;
                     }

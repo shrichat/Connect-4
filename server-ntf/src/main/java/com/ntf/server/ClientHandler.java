@@ -13,6 +13,7 @@ public class ClientHandler implements Runnable {
     private BufferedReader in;
     private PrintWriter out;
     private String username;
+    private Lobby currentLobby;
 
     public ClientHandler(Socket socket, Server server) {
         this.socket = socket;
@@ -27,11 +28,26 @@ public class ClientHandler implements Runnable {
     }
 
     public void run() {
+        boolean registered = false;
+
         try {
             out.println("Enter your username:");
             username = in.readLine();
-            System.out.println("User connected: " + username);
+            System.out.println("[DEBUG] Received username: " + username);
 
+            synchronized (server.getClients()) {
+                for (ClientHandler c : server.getClients()) {
+                    if (c.getUsername() != null && c.getUsername().equalsIgnoreCase(username)) {
+                        out.println("USERNAME_TAKEN");
+                        socket.close();
+                        return;
+                    }
+                }
+                server.getClients().add(this);
+            }
+
+            registered = true;
+            System.out.println("User connected: " + username);
             sendLobbyStatus();
 
             while (true) {
@@ -44,14 +60,22 @@ public class ClientHandler implements Runnable {
                     sendLobbyStatus();
                 }
 
+                if (input.equals("LEFT_LOBBY") && currentLobby != null) {
+                    currentLobby.removePlayer(this);
+                    currentLobby = null;
+                    server.broadcastLobbyStatus();
+                }
+
                 if (input.startsWith("JOIN_LOBBY:")) {
                     int lobbyId = Integer.parseInt(input.split(":")[1]);
                     Lobby lobby = server.getLobbyManager().getLobby(lobbyId);
 
                     boolean joined = lobby.addPlayer(this);
                     if (joined) {
+                        currentLobby = lobby;
                         out.println("JOIN_SUCCESS:" + lobbyId + ":" + lobby.getCurrentSize());
                         System.out.println(username + " joined Lobby " + lobbyId);
+                        server.broadcastLobbyStatus();
                     } else {
                         out.println("JOIN_FAILED:Lobby full");
                     }
@@ -71,16 +95,24 @@ public class ClientHandler implements Runnable {
 
         } catch (IOException e) {
             System.out.println("Client " + username + " disconnected.");
-        } finally {
-            try {
-                socket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+        }
+
+        if (registered) {
+            if (currentLobby != null) {
+                currentLobby.removePlayer(this);
+                server.broadcastLobbyStatus();
             }
+            server.removeClient(this);
+        }
+
+        try {
+            socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
-    private void sendLobbyStatus() {
+    public void sendLobbyStatus() {
         StringBuilder status = new StringBuilder("LOBBY_STATUS:");
         for (int i = 1; i <= 3; i++) {
             Lobby lobby = server.getLobbyManager().getLobby(i);

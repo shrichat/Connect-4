@@ -24,6 +24,14 @@ public class Lobby {
         return false;
     }
 
+    public synchronized void removePlayer(ClientHandler player) {
+        if (player == player1) {
+            player1 = null;
+        } else if (player == player2) {
+            player2 = null;
+        }
+    }
+
     public boolean isFull() {
         return player1 != null && player2 != null;
     }
