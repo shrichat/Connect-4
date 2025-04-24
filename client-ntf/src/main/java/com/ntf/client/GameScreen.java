@@ -75,12 +75,14 @@ public class GameScreen {
                         updateBoardDisplay();
                         if (gameBoard.checkWin(isRed ? 'R' : 'Y')) {
                             turnLabel.setText("You Win!");
+                            connection.getWriter().println("MOVE:" + finalCol); 
                         } else if (gameBoard.isFull()) {
                             turnLabel.setText("Draw!");
+                            connection.getWriter().println("MOVE:" + finalCol); 
                         } else {
                             isPlayerTurn = false;
                             updateTurnLabel();
-                            connection.getWriter().println("MOVE:" + finalCol);
+                            connection.getWriter().println("MOVE:" + finalCol); 
                         }
                     }
                 }
