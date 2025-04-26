@@ -98,6 +98,10 @@ public class ClientHandler implements Runnable {
                         opponent.getWriter().println(input);
                     }
                 }
+                if (input.equals("PLAY_AGAIN_REQUEST") && currentLobby != null) {
+                    currentLobby.handlePlayAgain(this);
+                }
+
             }
 
         } catch (IOException e) {

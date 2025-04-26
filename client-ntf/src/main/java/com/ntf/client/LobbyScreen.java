@@ -91,7 +91,7 @@ public class LobbyScreen {
                         opponent = response.split(":")[1];
                         String finalOpponent = opponent;
                         Platform.runLater(() -> {
-                            GameScreen gameScreen = new GameScreen(stage, username, finalOpponent, isRed, connection);
+                            GameScreen gameScreen = new GameScreen(stage, username, finalOpponent, isRed, connection, false);
                         });
                         break;
                     }
@@ -101,6 +101,7 @@ public class LobbyScreen {
             }
         }).start();
     }
+
 
     private void requestLobbyStatus() {
         connection.getWriter().println("REQUEST_LOBBY_STATUS");

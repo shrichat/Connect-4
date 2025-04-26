@@ -93,6 +93,13 @@ public class LoginScreen {
                 }).start();
             }
         });
+        aiButton.setOnAction(e -> {
+            String username = usernameField.getText().trim();
+            if (username.isEmpty()) {
+                username = "You";
+            }
+            GameScreen game = new GameScreen(stage, username, "AI", true, null, true);
+        });
     }
 
     public String getUsername() {

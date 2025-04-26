@@ -14,6 +14,8 @@ import javafx.stage.Stage;
 import java.io.IOException;
 
 public class GameScreen {
+    private boolean vsAI = false;
+    private Ai ai = new Ai();
 
     private Stage stage;
     private String playerName;
@@ -27,16 +29,21 @@ public class GameScreen {
     private GridPane boardGrid;
     private GameBoard gameBoard;
 
-    public GameScreen(Stage stage, String playerName, String opponentName, boolean isRed, ClientConnection connection) {
+    public GameScreen(Stage stage, String playerName, String opponentName, boolean isRed, ClientConnection connection, boolean vsAI) {
         this.stage = stage;
         this.playerName = playerName;
         this.opponentName = opponentName;
         this.isRed = isRed;
         this.isPlayerTurn = isRed;
         this.connection = connection;
+        this.vsAI = vsAI;
         this.gameBoard = new GameBoard();
+
         setupUI();
-        listenForOpponentMoves();
+
+        if (!vsAI) {
+            listenForOpponentMoves();
+        }
     }
 
     private void setupUI() {
@@ -75,14 +82,35 @@ public class GameScreen {
                         updateBoardDisplay();
                         if (gameBoard.checkWin(isRed ? 'R' : 'Y')) {
                             turnLabel.setText("You Win!");
-                            connection.getWriter().println("MOVE:" + finalCol); 
+                            if (!vsAI && connection != null) {
+                                connection.getWriter().println("MOVE:" + finalCol);
+                            }
                         } else if (gameBoard.isFull()) {
                             turnLabel.setText("Draw!");
-                            connection.getWriter().println("MOVE:" + finalCol); 
+                            if (!vsAI && connection != null) {
+                                connection.getWriter().println("MOVE:" + finalCol);
+                            }
                         } else {
                             isPlayerTurn = false;
                             updateTurnLabel();
-                            connection.getWriter().println("MOVE:" + finalCol); 
+                            if (vsAI) {
+                                Platform.runLater(() -> {
+                                    int aiMove = ai.chooseMove(gameBoard, !isRed);
+                                    int aiRow = gameBoard.placeCoin(aiMove, !isRed ? 'R' : 'Y');
+                                    updateBoardDisplay();
+
+                                    if (gameBoard.checkWin(!isRed ? 'R' : 'Y')) {
+                                        turnLabel.setText(opponentName + " (AI) Wins!");
+                                    } else if (gameBoard.isFull()) {
+                                        turnLabel.setText("Draw!");
+                                    } else {
+                                        isPlayerTurn = true;
+                                        updateTurnLabel();
+                                    }
+                                });
+                            } else {
+                                connection.getWriter().println("MOVE:" + finalCol);
+                            }
                         }
                     }
                 }
@@ -91,15 +119,26 @@ public class GameScreen {
             GridPane.setHalignment(colButton, HPos.CENTER);
         }
 
+        // First create the buttons
+        Button playAgainButton = new Button("Play Again >");
+        playAgainButton.setStyle("-fx-text-fill: green;");
+        playAgainButton.setOnAction(e -> handlePlayAgain());
+
         Button quitButton = new Button("Quit >");
         quitButton.setStyle("-fx-text-fill: red;");
         quitButton.setOnAction(e -> {
-            connection.getWriter().println("LEFT_LOBBY");
+            if (!vsAI && connection != null) {
+                connection.getWriter().println("LEFT_LOBBY");
+            }
             LoginScreen login = new LoginScreen(stage);
             login.start(stage);
         });
 
-        VBox mainBox = new VBox(10, topInfo, boardGrid, buttonGrid, quitButton);
+        // Add playAgain and quit buttons together
+        HBox bottomButtons = new HBox(20, playAgainButton, quitButton);
+        bottomButtons.setAlignment(Pos.CENTER);
+
+        VBox mainBox = new VBox(10, topInfo, boardGrid, buttonGrid, bottomButtons);
         mainBox.setAlignment(Pos.CENTER);
         mainBox.setStyle("-fx-padding: 20px;");
 
@@ -107,6 +146,15 @@ public class GameScreen {
         stage.setScene(scene);
         stage.setTitle("Connect 4 - Game");
         stage.show();
+    }
+
+    private void handlePlayAgain() {
+        if (vsAI) {
+            GameScreen newGame = new GameScreen(stage, playerName, opponentName, true, null, true);
+        } else {
+            connection.getWriter().println("PLAY_AGAIN_REQUEST");
+            turnLabel.setText("Waiting for opponent to accept...");
+        }
     }
 
     private void updateBoardDisplay() {
@@ -144,9 +192,10 @@ public class GameScreen {
             try {
                 String line;
                 while ((line = connection.getReader().readLine()) != null) {
-                    if (line.startsWith("MOVE:")) {
-                        int column = Integer.parseInt(line.split(":")[1]);
-                        Platform.runLater(() -> {
+                    String finalLine = line;
+                    Platform.runLater(() -> {
+                        if (finalLine.startsWith("MOVE:")) {
+                            int column = Integer.parseInt(finalLine.split(":")[1]);
                             int placedRow = gameBoard.placeCoin(column, isRed ? 'Y' : 'R');
                             if (placedRow != -1) {
                                 updateBoardDisplay();
@@ -159,8 +208,11 @@ public class GameScreen {
                                     updateTurnLabel();
                                 }
                             }
-                        });
-                    }
+                        } else if (finalLine.equals("PLAY_AGAIN_ACCEPTED")) {
+                            // Restart game
+                            GameScreen newGame = new GameScreen(stage, playerName, opponentName, isRed, connection, false);
+                        }
+                    });
                 }
             } catch (IOException e) {
                 e.printStackTrace();
