@@ -4,8 +4,8 @@ public class Lobby {
     private int id;
     private ClientHandler player1;
     private ClientHandler player2;
-    private boolean playAgain1 = false;
-    private boolean playAgain2 = false;
+    private boolean player1WantsRematch = false;
+    private boolean player2WantsRematch = false;
 
     public Lobby(int id) {
         this.id = id;
@@ -14,7 +14,6 @@ public class Lobby {
     public synchronized boolean addPlayer(ClientHandler player) {
         if (player1 != null && player1.getUsername().equals(player.getUsername())) return false;
         if (player2 != null && player2.getUsername().equals(player.getUsername())) return false;
-
         if (player1 == null) {
             player1 = player;
             return true;
@@ -22,7 +21,6 @@ public class Lobby {
             player2 = player;
             return true;
         }
-
         return false;
     }
 
@@ -62,20 +60,22 @@ public class Lobby {
     public ClientHandler getPlayer2() {
         return player2;
     }
-    
-    public synchronized void handlePlayAgain(ClientHandler player) {
-        if (player == player1) {
-            playAgain1 = true;
-        } else if (player == player2) {
-            playAgain2 = true;
-        }
 
-        if (playAgain1 && playAgain2 && isFull()) {
+    public synchronized void requestRematch(ClientHandler requester) {
+        if (requester == player1) {
+            player1WantsRematch = true;
+        } else if (requester == player2) {
+            player2WantsRematch = true;
+        }
+        if (player1WantsRematch && player2WantsRematch && isFull()) {
             player1.getWriter().println("PLAY_AGAIN_ACCEPTED");
             player2.getWriter().println("PLAY_AGAIN_ACCEPTED");
-            playAgain1 = false;
-            playAgain2 = false;
+            resetRematchFlags();
         }
     }
 
+    private void resetRematchFlags() {
+        player1WantsRematch = false;
+        player2WantsRematch = false;
+    }
 }

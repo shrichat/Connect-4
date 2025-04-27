@@ -100,7 +100,7 @@ public class LoginScreen {
             if (username.isEmpty()) {
                 username = "You";
             }
-            GameScreen game = new GameScreen(stage, username, "AI", true, null, true);
+            GameScreen game = new GameScreen(stage, username, "AI", true, null, true, -1);
         });
     }
 

@@ -7,7 +7,6 @@ import java.io.PrintWriter;
 import java.net.Socket;
 
 public class ClientHandler implements Runnable {
-
     private Socket socket;
     private Server server;
     private BufferedReader in;
@@ -31,7 +30,6 @@ public class ClientHandler implements Runnable {
         try {
             out.println("Enter your username:");
             username = in.readLine();
-
             synchronized (server.getClients()) {
                 for (ClientHandler c : server.getClients()) {
                     if (c.getUsername() != null && c.getUsername().equalsIgnoreCase(username)) {
@@ -42,25 +40,18 @@ public class ClientHandler implements Runnable {
                 }
                 server.getClients().add(this);
             }
-
             registered = true;
             sendLobbyStatus();
-
             while (true) {
                 String input = in.readLine();
                 if (input == null) break;
-
                 if (input.equals("REQUEST_LOBBY_STATUS")) {
                     sendLobbyStatus();
-                }
-
-                if (input.equals("LEFT_LOBBY") && currentLobby != null) {
+                } else if (input.equals("LEFT_LOBBY") && currentLobby != null) {
                     currentLobby.removePlayer(this);
                     currentLobby = null;
                     server.broadcastLobbyStatus();
-                }
-
-                if (input.startsWith("JOIN_LOBBY:")) {
+                } else if (input.startsWith("JOIN_LOBBY:")) {
                     int lobbyId = Integer.parseInt(input.split(":")[1]);
                     Lobby lobby = server.getLobbyManager().getLobby(lobbyId);
                     boolean joined = lobby.addPlayer(this);
@@ -79,31 +70,23 @@ public class ClientHandler implements Runnable {
                         player1.getWriter().println("LOBBY_READY:" + player2.getUsername());
                         player2.getWriter().println("LOBBY_READY:" + player1.getUsername());
                     }
-                }
-
-                if (input.startsWith("MOVE:") && currentLobby != null) {
+                } else if (input.startsWith("MOVE:") && currentLobby != null) {
                     ClientHandler opponent = currentLobby.getOpponent(this);
                     if (opponent != null) {
                         opponent.getWriter().println(input);
                     }
-                }
-
-                if (input.equals("PLAY_AGAIN_REQUEST") && currentLobby != null) {
-                    currentLobby.handlePlayAgain(this);
-                }
-
-                if (input.startsWith("CHAT:") && currentLobby != null) {
+                } else if (input.equals("PLAY_AGAIN_REQUEST") && currentLobby != null) {
+                    currentLobby.requestRematch(this);
+                } else if (input.startsWith("CHAT:") && currentLobby != null) {
                     ClientHandler opponent = currentLobby.getOpponent(this);
                     if (opponent != null) {
                         opponent.getWriter().println(input);
                     }
                 }
             }
-
         } catch (IOException e) {
             System.out.println("Client " + username + " disconnected.");
         }
-
         if (registered) {
             if (currentLobby != null) {
                 currentLobby.removePlayer(this);
@@ -111,7 +94,6 @@ public class ClientHandler implements Runnable {
             }
             server.removeClient(this);
         }
-
         try {
             socket.close();
         } catch (IOException e) {

@@ -23,10 +23,20 @@ public class LobbyScreen {
     private Button lobby2Button;
     private Button lobby3Button;
 
+    private Integer lobbyID = null; 
+
     public LobbyScreen(Stage stage, String username, ClientConnection connection) {
         this.stage = stage;
         this.username = username;
         this.connection = connection;
+        createLobbyScene();
+    }
+
+    public LobbyScreen(Stage stage, String username, ClientConnection connection, int lobbyID) {
+        this.stage = stage;
+        this.username = username;
+        this.connection = connection;
+        this.lobbyID = lobbyID;
         createLobbyScene();
     }
 
@@ -91,7 +101,7 @@ public class LobbyScreen {
                         opponent = response.split(":")[1];
                         String finalOpponent = opponent;
                         Platform.runLater(() -> {
-                            GameScreen gameScreen = new GameScreen(stage, username, finalOpponent, isRed, connection, false);
+                        	GameScreen gameScreen = new GameScreen(stage, username, finalOpponent, isRed, connection, false, lobbyId);
                         });
                         break;
                     }
@@ -101,7 +111,6 @@ public class LobbyScreen {
             }
         }).start();
     }
-
 
     private void requestLobbyStatus() {
         connection.getWriter().println("REQUEST_LOBBY_STATUS");
@@ -130,5 +139,9 @@ public class LobbyScreen {
         stage.setTitle("Lobby - NTF");
         stage.setScene(lobbyScene);
         stage.show();
+
+        if (lobbyID != null) {
+            joinLobby(lobbyID); 
+        }
     }
 }
