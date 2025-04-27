@@ -54,10 +54,22 @@ public class GameScreen {
 
     private void setupUI() {
         playerInfoLabel = new Label(playerName);
-        playerInfoLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + (isRed ? "#FF0000" : "#FFD700") + ";");
+        String playerColor;
+        if (isRed) {
+            playerColor = "#FF0000";
+        } else {
+            playerColor = "#FFD700";
+        }
+        playerInfoLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + playerColor + ";");
 
         opponentInfoLabel = new Label(opponentName);
-        opponentInfoLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + (isRed ? "#FFD700" : "#FF0000") + ";");
+        String opponentColor;
+        if (isRed) {
+            opponentColor = "#FFD700";
+        } else {
+            opponentColor = "#FF0000";
+        }
+        opponentInfoLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + opponentColor + ";");
 
         turnLabel = new Label();
         updateTurnLabel();
@@ -108,7 +120,7 @@ public class GameScreen {
             chatArea.setWrapText(true);
 
             chatInput = new TextField();
-            chatInput.setPromptText("Type your message...");
+            chatInput.setPromptText("Message...");
             chatInput.setPrefWidth(180);
             chatInput.setOnAction(e -> sendChatMessage());
 
@@ -140,13 +152,19 @@ public class GameScreen {
 
     private void handleMove(int column) {
         if (isPlayerTurn && !gameEnded) {
-            int placedRow = gameBoard.placeCoin(column, isRed ? 'R' : 'Y');
+            char moveColor;
+            if (isRed) {
+                moveColor = 'R';
+            } else {
+                moveColor = 'Y';
+            }
+            int placedRow = gameBoard.placeCoin(column, moveColor);
             if (placedRow != -1) {
                 updateBoardDisplay();
                 if (!vsAI && connection != null) {
                     connection.getWriter().println("MOVE:" + column);
                 }
-                if (gameBoard.checkWin(isRed ? 'R' : 'Y')) {
+                if (gameBoard.checkWin(moveColor)) {
                     turnLabel.setText("You Win!");
                     gameEnded = true;
                 } else if (gameBoard.isFull()) {
@@ -164,9 +182,15 @@ public class GameScreen {
     private void handleAIMove() {
         Platform.runLater(() -> {
             int aiMove = ai.chooseMove(gameBoard, !isRed);
-            gameBoard.placeCoin(aiMove, !isRed ? 'R' : 'Y');
+            char aiColor;
+            if (!isRed) {
+                aiColor = 'R';
+            } else {
+                aiColor = 'Y';
+            }
+            gameBoard.placeCoin(aiMove, aiColor);
             updateBoardDisplay();
-            if (gameBoard.checkWin(!isRed ? 'R' : 'Y')) {
+            if (gameBoard.checkWin(aiColor)) {
                 turnLabel.setText(opponentName + " (AI) Wins!");
                 gameEnded = true;
             } else if (gameBoard.isFull()) {
@@ -225,8 +249,28 @@ public class GameScreen {
     }
 
     private void updateTurnLabel() {
-        String name = isPlayerTurn ? playerName : opponentName;
-        String color = isPlayerTurn ? (isRed ? "#FF0000" : "#FFD700") : (isRed ? "#FFD700" : "#FF0000");
+        String name;
+        if (isPlayerTurn) {
+            name = playerName;
+        } else {
+            name = opponentName;
+        }
+
+        String color;
+        if (isPlayerTurn) {
+            if (isRed) {
+                color = "#FF0000";
+            } else {
+                color = "#FFD700";
+            }
+        } else {
+            if (isRed) {
+                color = "#FFD700";
+            } else {
+                color = "#FF0000";
+            }
+        }
+
         turnLabel.setText(name + "'s Turn!");
         turnLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: " + color);
     }
@@ -240,10 +284,16 @@ public class GameScreen {
                     Platform.runLater(() -> {
                         if (finalLine.startsWith("MOVE:")) {
                             int column = Integer.parseInt(finalLine.split(":")[1]);
-                            int placedRow = gameBoard.placeCoin(column, isRed ? 'Y' : 'R');
+                            char opponentColor;
+                            if (isRed) {
+                                opponentColor = 'Y';
+                            } else {
+                                opponentColor = 'R';
+                            }
+                            int placedRow = gameBoard.placeCoin(column, opponentColor);
                             if (placedRow != -1) {
                                 updateBoardDisplay();
-                                if (gameBoard.checkWin(isRed ? 'Y' : 'R')) {
+                                if (gameBoard.checkWin(opponentColor)) {
                                     turnLabel.setText(opponentName + " Wins!");
                                     gameEnded = true;
                                 } else if (gameBoard.isFull()) {
