@@ -80,6 +80,9 @@ public class GameScreen {
                     int placedRow = gameBoard.placeCoin(finalCol, isRed ? 'R' : 'Y');
                     if (placedRow != -1) {
                         updateBoardDisplay();
+                        if (!vsAI && connection != null) {
+                            connection.getWriter().println("MOVE:" + finalCol);
+                        }
                         if (gameBoard.checkWin(isRed ? 'R' : 'Y')) {
                             turnLabel.setText("You Win!");
                             gameEnded = true;
@@ -89,27 +92,23 @@ public class GameScreen {
                         } else {
                             isPlayerTurn = false;
                             updateTurnLabel();
-                            if (vsAI) {
-                                Platform.runLater(() -> {
-                                    if (!gameEnded) {
-                                        int aiMove = ai.chooseMove(gameBoard, !isRed);
-                                        gameBoard.placeCoin(aiMove, !isRed ? 'R' : 'Y');
-                                        updateBoardDisplay();
-                                        if (gameBoard.checkWin(!isRed ? 'R' : 'Y')) {
-                                            turnLabel.setText(opponentName + " (AI) Wins!");
-                                            gameEnded = true;
-                                        } else if (gameBoard.isFull()) {
-                                            turnLabel.setText("Draw!");
-                                            gameEnded = true;
-                                        } else {
-                                            isPlayerTurn = true;
-                                            updateTurnLabel();
-                                        }
-                                    }
-                                });
-                            } else {
-                                connection.getWriter().println("MOVE:" + finalCol);
-                            }
+                        }
+                        if (vsAI && !gameEnded) {
+                            Platform.runLater(() -> {
+                                int aiMove = ai.chooseMove(gameBoard, !isRed);
+                                gameBoard.placeCoin(aiMove, !isRed ? 'R' : 'Y');
+                                updateBoardDisplay();
+                                if (gameBoard.checkWin(!isRed ? 'R' : 'Y')) {
+                                    turnLabel.setText(opponentName + " (AI) Wins!");
+                                    gameEnded = true;
+                                } else if (gameBoard.isFull()) {
+                                    turnLabel.setText("Draw!");
+                                    gameEnded = true;
+                                } else {
+                                    isPlayerTurn = true;
+                                    updateTurnLabel();
+                                }
+                            });
                         }
                     }
                 }
@@ -228,7 +227,7 @@ public class GameScreen {
                 while ((line = connection.getReader().readLine()) != null) {
                     String finalLine = line;
                     Platform.runLater(() -> {
-                        if (finalLine.startsWith("MOVE:") && !gameEnded) {
+                        if (finalLine.startsWith("MOVE:")) {
                             int column = Integer.parseInt(finalLine.split(":")[1]);
                             int placedRow = gameBoard.placeCoin(column, isRed ? 'Y' : 'R');
                             if (placedRow != -1) {

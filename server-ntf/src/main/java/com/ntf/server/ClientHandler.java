@@ -18,7 +18,6 @@ public class ClientHandler implements Runnable {
     public ClientHandler(Socket socket, Server server) {
         this.socket = socket;
         this.server = server;
-
         try {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(socket.getOutputStream(), true);
@@ -29,11 +28,9 @@ public class ClientHandler implements Runnable {
 
     public void run() {
         boolean registered = false;
-
         try {
             out.println("Enter your username:");
             username = in.readLine();
-            System.out.println("[DEBUG] Received username: " + username);
 
             synchronized (server.getClients()) {
                 for (ClientHandler c : server.getClients()) {
@@ -47,14 +44,11 @@ public class ClientHandler implements Runnable {
             }
 
             registered = true;
-            System.out.println("User connected: " + username);
             sendLobbyStatus();
 
             while (true) {
                 String input = in.readLine();
                 if (input == null) break;
-
-                System.out.println(username + ": " + input);
 
                 if (input.equals("REQUEST_LOBBY_STATUS")) {
                     sendLobbyStatus();
@@ -69,24 +63,19 @@ public class ClientHandler implements Runnable {
                 if (input.startsWith("JOIN_LOBBY:")) {
                     int lobbyId = Integer.parseInt(input.split(":")[1]);
                     Lobby lobby = server.getLobbyManager().getLobby(lobbyId);
-
                     boolean joined = lobby.addPlayer(this);
                     if (joined) {
                         currentLobby = lobby;
                         out.println("JOIN_SUCCESS:" + lobbyId + ":" + lobby.getCurrentSize());
-                        System.out.println(username + " joined Lobby " + lobbyId);
                         server.broadcastLobbyStatus();
                     } else {
                         out.println("JOIN_FAILED:Lobby full");
                     }
-
                     if (lobby.isFull()) {
                         ClientHandler player1 = lobby.getPlayer1();
                         ClientHandler player2 = lobby.getPlayer2();
-
                         player1.getWriter().println("COLOR_ASSIGN:RED");
                         player2.getWriter().println("COLOR_ASSIGN:YELLOW");
-
                         player1.getWriter().println("LOBBY_READY:" + player2.getUsername());
                         player2.getWriter().println("LOBBY_READY:" + player1.getUsername());
                     }
