@@ -2,10 +2,10 @@ package com.ntf.client;
 
 import javafx.application.Platform;
 import javafx.geometry.HPos;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
@@ -16,18 +16,23 @@ import java.io.IOException;
 public class GameScreen {
     private boolean vsAI = false;
     private Ai ai = new Ai();
-
     private Stage stage;
     private String playerName;
     private String opponentName;
     private boolean isPlayerTurn;
     private boolean isRed;
+    private boolean gameEnded = false;
     private ClientConnection connection;
     private Label turnLabel;
     private Label playerInfoLabel;
     private Label opponentInfoLabel;
     private GridPane boardGrid;
     private GameBoard gameBoard;
+    private TextArea chatArea;
+    private TextField chatInput;
+    private Button sendButton;
+    private Button playAgainButton;
+    private Button quitButton;
 
     public GameScreen(Stage stage, String playerName, String opponentName, boolean isRed, ClientConnection connection, boolean vsAI) {
         this.stage = stage;
@@ -38,23 +43,18 @@ public class GameScreen {
         this.connection = connection;
         this.vsAI = vsAI;
         this.gameBoard = new GameBoard();
-
         setupUI();
-
         if (!vsAI) {
             listenForOpponentMoves();
         }
     }
 
     private void setupUI() {
-        String playerColor = isRed ? "🔴" : "🟡";
-        String opponentColor = isRed ? "🟡" : "🔴";
+        playerInfoLabel = new Label(playerName);
+        playerInfoLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + (isRed ? "#FF0000" : "#FFD700") + ";");
 
-        playerInfoLabel = new Label(playerColor + " " + playerName);
-        playerInfoLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
-
-        opponentInfoLabel = new Label(opponentColor + " " + opponentName);
-        opponentInfoLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+        opponentInfoLabel = new Label(opponentName);
+        opponentInfoLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: " + (isRed ? "#FFD700" : "#FF0000") + ";");
 
         turnLabel = new Label();
         updateTurnLabel();
@@ -76,36 +76,35 @@ public class GameScreen {
             Button colButton = new Button("" + (col + 1));
             colButton.setPrefWidth(50);
             colButton.setOnAction(e -> {
-                if (isPlayerTurn) {
+                if (isPlayerTurn && !gameEnded) {
                     int placedRow = gameBoard.placeCoin(finalCol, isRed ? 'R' : 'Y');
                     if (placedRow != -1) {
                         updateBoardDisplay();
                         if (gameBoard.checkWin(isRed ? 'R' : 'Y')) {
                             turnLabel.setText("You Win!");
-                            if (!vsAI && connection != null) {
-                                connection.getWriter().println("MOVE:" + finalCol);
-                            }
+                            gameEnded = true;
                         } else if (gameBoard.isFull()) {
                             turnLabel.setText("Draw!");
-                            if (!vsAI && connection != null) {
-                                connection.getWriter().println("MOVE:" + finalCol);
-                            }
+                            gameEnded = true;
                         } else {
                             isPlayerTurn = false;
                             updateTurnLabel();
                             if (vsAI) {
                                 Platform.runLater(() -> {
-                                    int aiMove = ai.chooseMove(gameBoard, !isRed);
-                                    int aiRow = gameBoard.placeCoin(aiMove, !isRed ? 'R' : 'Y');
-                                    updateBoardDisplay();
-
-                                    if (gameBoard.checkWin(!isRed ? 'R' : 'Y')) {
-                                        turnLabel.setText(opponentName + " (AI) Wins!");
-                                    } else if (gameBoard.isFull()) {
-                                        turnLabel.setText("Draw!");
-                                    } else {
-                                        isPlayerTurn = true;
-                                        updateTurnLabel();
+                                    if (!gameEnded) {
+                                        int aiMove = ai.chooseMove(gameBoard, !isRed);
+                                        gameBoard.placeCoin(aiMove, !isRed ? 'R' : 'Y');
+                                        updateBoardDisplay();
+                                        if (gameBoard.checkWin(!isRed ? 'R' : 'Y')) {
+                                            turnLabel.setText(opponentName + " (AI) Wins!");
+                                            gameEnded = true;
+                                        } else if (gameBoard.isFull()) {
+                                            turnLabel.setText("Draw!");
+                                            gameEnded = true;
+                                        } else {
+                                            isPlayerTurn = true;
+                                            updateTurnLabel();
+                                        }
                                     }
                                 });
                             } else {
@@ -119,13 +118,14 @@ public class GameScreen {
             GridPane.setHalignment(colButton, HPos.CENTER);
         }
 
-        // First create the buttons
-        Button playAgainButton = new Button("Play Again >");
+        playAgainButton = new Button("Play Again >");
         playAgainButton.setStyle("-fx-text-fill: green;");
+        playAgainButton.setPrefWidth(120);
         playAgainButton.setOnAction(e -> handlePlayAgain());
 
-        Button quitButton = new Button("Quit >");
+        quitButton = new Button("Quit >");
         quitButton.setStyle("-fx-text-fill: red;");
+        quitButton.setPrefWidth(120);
         quitButton.setOnAction(e -> {
             if (!vsAI && connection != null) {
                 connection.getWriter().println("LEFT_LOBBY");
@@ -134,18 +134,52 @@ public class GameScreen {
             login.start(stage);
         });
 
-        // Add playAgain and quit buttons together
         HBox bottomButtons = new HBox(20, playAgainButton, quitButton);
         bottomButtons.setAlignment(Pos.CENTER);
 
-        VBox mainBox = new VBox(10, topInfo, boardGrid, buttonGrid, bottomButtons);
-        mainBox.setAlignment(Pos.CENTER);
-        mainBox.setStyle("-fx-padding: 20px;");
+        chatArea = new TextArea();
+        chatArea.setEditable(false);
+        chatArea.setPrefHeight(400);
+        chatArea.setPrefWidth(250);
+        chatArea.setWrapText(true);
 
-        Scene scene = new Scene(mainBox, 800, 600);
+        chatInput = new TextField();
+        chatInput.setPromptText("Type your message...");
+        chatInput.setPrefWidth(180);
+        chatInput.setOnAction(e -> sendChatMessage());
+
+        sendButton = new Button("Send");
+        sendButton.setPrefWidth(60);
+        sendButton.setOnAction(e -> sendChatMessage());
+
+        HBox chatInputBox = new HBox(5, chatInput, sendButton);
+        chatInputBox.setAlignment(Pos.CENTER);
+
+        VBox chatBox = new VBox(10, new Label("Chat"), chatArea, chatInputBox);
+        chatBox.setPadding(new Insets(20));
+        chatBox.setAlignment(Pos.TOP_CENTER);
+
+        VBox leftSide = new VBox(10, topInfo, boardGrid, buttonGrid, bottomButtons);
+        leftSide.setAlignment(Pos.CENTER);
+
+        HBox mainLayout = new HBox(50, leftSide, chatBox);
+        mainLayout.setAlignment(Pos.CENTER);
+        mainLayout.setPadding(new Insets(20));
+
+        Scene scene = new Scene(mainLayout, 1000, 700);
         stage.setScene(scene);
+        stage.setResizable(false);
         stage.setTitle("Connect 4 - Game");
         stage.show();
+    }
+
+    private void sendChatMessage() {
+        String message = chatInput.getText().trim();
+        if (!message.isEmpty() && connection != null) {
+            chatArea.appendText("Me: " + message + "\n");
+            connection.getWriter().println("CHAT:" + message);
+            chatInput.clear();
+        }
     }
 
     private void handlePlayAgain() {
@@ -194,22 +228,26 @@ public class GameScreen {
                 while ((line = connection.getReader().readLine()) != null) {
                     String finalLine = line;
                     Platform.runLater(() -> {
-                        if (finalLine.startsWith("MOVE:")) {
+                        if (finalLine.startsWith("MOVE:") && !gameEnded) {
                             int column = Integer.parseInt(finalLine.split(":")[1]);
                             int placedRow = gameBoard.placeCoin(column, isRed ? 'Y' : 'R');
                             if (placedRow != -1) {
                                 updateBoardDisplay();
                                 if (gameBoard.checkWin(isRed ? 'Y' : 'R')) {
                                     turnLabel.setText(opponentName + " Wins!");
+                                    gameEnded = true;
                                 } else if (gameBoard.isFull()) {
                                     turnLabel.setText("Draw!");
+                                    gameEnded = true;
                                 } else {
                                     isPlayerTurn = true;
                                     updateTurnLabel();
                                 }
                             }
+                        } else if (finalLine.startsWith("CHAT:")) {
+                            String chatMessage = finalLine.substring(5);
+                            chatArea.appendText(opponentName + ": " + chatMessage + "\n");
                         } else if (finalLine.equals("PLAY_AGAIN_ACCEPTED")) {
-                            // Restart game
                             GameScreen newGame = new GameScreen(stage, playerName, opponentName, isRed, connection, false);
                         }
                     });

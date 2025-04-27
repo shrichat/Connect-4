@@ -58,6 +58,8 @@ public class LoginScreen {
         Scene scene = new Scene(layout, 800, 500);
         stage.setTitle("NTF - Login");
         stage.setScene(scene);
+        stage.setResizable(false);
+
         stage.show();
 
         connectButton.setOnAction(e -> {

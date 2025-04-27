@@ -98,10 +98,17 @@ public class ClientHandler implements Runnable {
                         opponent.getWriter().println(input);
                     }
                 }
+
                 if (input.equals("PLAY_AGAIN_REQUEST") && currentLobby != null) {
                     currentLobby.handlePlayAgain(this);
                 }
 
+                if (input.startsWith("CHAT:") && currentLobby != null) {
+                    ClientHandler opponent = currentLobby.getOpponent(this);
+                    if (opponent != null) {
+                        opponent.getWriter().println(input);
+                    }
+                }
             }
 
         } catch (IOException e) {
