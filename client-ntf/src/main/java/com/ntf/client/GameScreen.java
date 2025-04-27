@@ -136,32 +136,39 @@ public class GameScreen {
         HBox bottomButtons = new HBox(20, playAgainButton, quitButton);
         bottomButtons.setAlignment(Pos.CENTER);
 
-        chatArea = new TextArea();
-        chatArea.setEditable(false);
-        chatArea.setPrefHeight(400);
-        chatArea.setPrefWidth(250);
-        chatArea.setWrapText(true);
-
-        chatInput = new TextField();
-        chatInput.setPromptText("Type your message...");
-        chatInput.setPrefWidth(180);
-        chatInput.setOnAction(e -> sendChatMessage());
-
-        sendButton = new Button("Send");
-        sendButton.setPrefWidth(60);
-        sendButton.setOnAction(e -> sendChatMessage());
-
-        HBox chatInputBox = new HBox(5, chatInput, sendButton);
-        chatInputBox.setAlignment(Pos.CENTER);
-
-        VBox chatBox = new VBox(10, new Label("Chat"), chatArea, chatInputBox);
-        chatBox.setPadding(new Insets(20));
-        chatBox.setAlignment(Pos.TOP_CENTER);
-
         VBox leftSide = new VBox(10, topInfo, boardGrid, buttonGrid, bottomButtons);
         leftSide.setAlignment(Pos.CENTER);
 
-        HBox mainLayout = new HBox(50, leftSide, chatBox);
+        HBox mainLayout;
+
+        if (!vsAI) {
+            chatArea = new TextArea();
+            chatArea.setEditable(false);
+            chatArea.setPrefHeight(400);
+            chatArea.setPrefWidth(250);
+            chatArea.setWrapText(true);
+
+            chatInput = new TextField();
+            chatInput.setPromptText("Type your message...");
+            chatInput.setPrefWidth(180);
+            chatInput.setOnAction(e -> sendChatMessage());
+
+            sendButton = new Button("Send");
+            sendButton.setPrefWidth(60);
+            sendButton.setOnAction(e -> sendChatMessage());
+
+            HBox chatInputBox = new HBox(5, chatInput, sendButton);
+            chatInputBox.setAlignment(Pos.CENTER);
+
+            VBox chatBox = new VBox(10, new Label("Chat"), chatArea, chatInputBox);
+            chatBox.setPadding(new Insets(20));
+            chatBox.setAlignment(Pos.TOP_CENTER);
+
+            mainLayout = new HBox(50, leftSide, chatBox);
+        } else {
+            mainLayout = new HBox(50, leftSide);
+        }
+
         mainLayout.setAlignment(Pos.CENTER);
         mainLayout.setPadding(new Insets(20));
 
@@ -244,8 +251,10 @@ public class GameScreen {
                                 }
                             }
                         } else if (finalLine.startsWith("CHAT:")) {
-                            String chatMessage = finalLine.substring(5);
-                            chatArea.appendText(opponentName + ": " + chatMessage + "\n");
+                            if (chatArea != null) {
+                                String chatMessage = finalLine.substring(5);
+                                chatArea.appendText(opponentName + ": " + chatMessage + "\n");
+                            }
                         } else if (finalLine.equals("PLAY_AGAIN_ACCEPTED")) {
                             GameScreen newGame = new GameScreen(stage, playerName, opponentName, isRed, connection, false);
                         }
