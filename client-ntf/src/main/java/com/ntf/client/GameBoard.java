@@ -33,7 +33,12 @@ public class GameBoard {
     }
 
     public boolean dropPiece(int col, boolean isRed) {
-        char color = isRed ? 'R' : 'Y';
+        char color;
+        if (isRed) {
+            color = 'R';
+        } else {
+            color = 'Y';
+        }
         return placeCoin(col, color) != -1;
     }
 
@@ -49,11 +54,14 @@ public class GameBoard {
 
 
     public boolean isWinningMove(int col, boolean isRed) {
-        return checkWin(isRed ? 'R' : 'Y');
+    	if (isRed) {
+    	    return checkWin('R');
+    	} else {
+    	    return checkWin('Y');
+    	}
     }
 
     public boolean checkWin(char color) {
-        // Horizontal
         for (int row = 0; row < 6; row++) {
             for (int col = 0; col <= 3; col++) {
                 if (board[row][col] == color && board[row][col + 1] == color &&
