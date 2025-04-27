@@ -22,8 +22,9 @@ public class LobbyScreen {
     private Button lobby1Button;
     private Button lobby2Button;
     private Button lobby3Button;
+    private Label waiting;
 
-    private Integer lobbyID = null; 
+    private Integer lobbyID = null;
 
     public LobbyScreen(Stage stage, String username, ClientConnection connection) {
         this.stage = stage;
@@ -48,6 +49,9 @@ public class LobbyScreen {
             login.start(stage);
         });
 
+        waiting = new Label(""); 
+        waiting.setStyle("-fx-font-size: 16px; -fx-text-fill: green;");
+
         VBox lobbyBox = new VBox(20);
         lobbyBox.setAlignment(Pos.CENTER);
 
@@ -58,16 +62,14 @@ public class LobbyScreen {
         lobby1Button.setPrefWidth(200);
         lobby2Button.setPrefWidth(200);
         lobby3Button.setPrefWidth(200);
-
         lobby1Button.setStyle("-fx-font-size: 16px; -fx-padding: 10px;");
         lobby2Button.setStyle("-fx-font-size: 16px; -fx-padding: 10px;");
         lobby3Button.setStyle("-fx-font-size: 16px; -fx-padding: 10px;");
-
         lobby1Button.setOnAction(e -> joinLobby(1));
         lobby2Button.setOnAction(e -> joinLobby(2));
         lobby3Button.setOnAction(e -> joinLobby(3));
 
-        lobbyBox.getChildren().addAll(lobby1Button, lobby2Button, lobby3Button);
+        lobbyBox.getChildren().addAll(waiting, lobby1Button, lobby2Button, lobby3Button); 
 
         BorderPane root = new BorderPane();
         root.setTop(backLabel);
@@ -92,6 +94,13 @@ public class LobbyScreen {
 
                     if (response.startsWith("JOIN_SUCCESS")) {
                         System.out.println("Successfully joined Lobby " + lobbyId);
+                        int size = Integer.parseInt(response.split(":")[2]);
+                        if (size == 1) {
+                            int lobbyNum = Integer.parseInt(response.split(":")[1]);
+                            Platform.runLater(() -> {
+                                waiting.setText("Waiting for opponent in Lobby " + lobbyNum + "...");
+                            });
+                        }
                     } else if (response.startsWith("JOIN_FAILED")) {
                         System.out.println("Join failed: " + response);
                     } else if (response.startsWith("COLOR_ASSIGN")) {
@@ -101,7 +110,7 @@ public class LobbyScreen {
                         opponent = response.split(":")[1];
                         String finalOpponent = opponent;
                         Platform.runLater(() -> {
-                        	GameScreen gameScreen = new GameScreen(stage, username, finalOpponent, isRed, connection, false, lobbyId);
+                            GameScreen gameScreen = new GameScreen(stage, username, finalOpponent, isRed, connection, false, lobbyId);
                         });
                         break;
                     }
@@ -141,7 +150,7 @@ public class LobbyScreen {
         stage.show();
 
         if (lobbyID != null) {
-            joinLobby(lobbyID); 
+            joinLobby(lobbyID);
         }
     }
 }
